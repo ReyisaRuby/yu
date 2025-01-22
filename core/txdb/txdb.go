@@ -75,7 +75,7 @@ func (t *txnkvdb) GetTxn(txnHash Hash) (txn *SignedTxn, err error) {
 		byt, err = t.txnKV.Get(txnHash.Bytes())
 		t.RUnlock()
 		if err != nil {
-			logrus.Errorf("TxDB.GetTxn(%s), t.txnKV.Get(txnHash.Bytes()) failed: %v", txnHash.String(), err)
+			logrus.Debugf("TxDB.GetTxn(%s), t.txnKV.Get(txnHash.Bytes()) failed: %v", txnHash.String(), err)
 			return nil, err
 		}
 		if byt == nil {
@@ -84,11 +84,11 @@ func (t *txnkvdb) GetTxn(txnHash Hash) (txn *SignedTxn, err error) {
 		txn, err = DecodeSignedTxn(byt)
 		if err == nil {
 			if i > 0 {
-				logrus.Warnf("TxDB.GetTxn(%s), retry %d times, data: %s", txnHash.String(), i, string(byt))
+				logrus.Debugf("TxDB.GetTxn(%s), retry %d times, data: %s", txnHash.String(), i, string(byt))
 			}
 			return txn, nil
 		} else {
-			logrus.Errorf("TxDB.GetTxn(%s), DecodeSignedTxn failed, data: %s, retry %d times, error: %v", txnHash.String(), string(byt), i, err)
+			logrus.Debugf("TxDB.GetTxn(%s), DecodeSignedTxn failed, data: %s, retry %d times, error: %v", txnHash.String(), string(byt), i, err)
 		}
 	}
 
@@ -111,7 +111,7 @@ func (t *txnkvdb) SetTxns(txns []*SignedTxn) (err error) {
 	for _, txn := range txns {
 		txbyt, err := txn.Encode()
 		if err != nil {
-			logrus.Errorf("TxDB.SetTxns set tx(%s) failed: %v", txn.TxnHash.String(), err)
+			logrus.Debugf("TxDB.SetTxns set tx(%s) failed: %v", txn.TxnHash.String(), err)
 			return err
 		}
 		err = kvtx.Set(txn.TxnHash.Bytes(), txbyt)
@@ -147,7 +147,7 @@ func (bb *TxDB) GetTxn(txnHash Hash) (stxn *SignedTxn, err error) {
 	}
 	r, err := bb.txnKV.GetTxn(txnHash)
 	if err != nil {
-		logrus.Errorf("TxDB.GetTxn(%s), failed: %v", txnHash.String(), err)
+		logrus.Debugf("TxDB.GetTxn(%s), failed: %v", txnHash.String(), err)
 	}
 	metrics.TxnDBCounter.WithLabelValues(txnType, kvSourceType, "getTxn", getStatusValue(err)).Inc()
 	return r, err
@@ -242,7 +242,7 @@ func (r *receipttxnkvdb) GetReceipt(txHash Hash) (*Receipt, error) {
 		byt, err = r.receiptKV.Get(txHash.Bytes())
 		r.RUnlock()
 		if err != nil {
-			logrus.Errorf("TxDB.GetReceipt(%s), failed: %s, error: %v", txHash.String(), string(byt), err)
+			logrus.Debugf("TxDB.GetReceipt(%s), failed: %s, error: %v", txHash.String(), string(byt), err)
 			return nil, err
 		}
 		if byt == nil {
@@ -252,11 +252,11 @@ func (r *receipttxnkvdb) GetReceipt(txHash Hash) (*Receipt, error) {
 		err = receipt.Decode(byt)
 		if err == nil {
 			if i > 0 {
-				logrus.Infof("TxDB.GetReceipt(%s), succeeded after %d retries, data: %s", txHash.String(), i, string(byt))
+				logrus.Debugf("TxDB.GetReceipt(%s), succeeded after %d retries, data: %s", txHash.String(), i, string(byt))
 			}
 			return receipt, nil
 		} else {
-			logrus.Errorf("TxDB.GetReceipt(%s), Decode failed: %s, retry %d times, error: %v", txHash.String(), string(byt), i, err)
+			logrus.Debugf("TxDB.GetReceipt(%s), Decode failed: %s, retry %d times, error: %v", txHash.String(), string(byt), i, err)
 		}
 	}
 
