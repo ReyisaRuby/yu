@@ -1,7 +1,6 @@
 package txdb
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -20,14 +19,10 @@ const (
 )
 
 type TxDB struct {
-	enableSqlite bool
-	nodeType     int
+	nodeType int
 
 	txnKV     *txnkvdb
 	receiptKV *receipttxnkvdb
-
-	txnSqlite     *txnSqliteStorage
-	receiptSqlite *receiptSqliteStorage
 }
 
 type txnkvdb struct {
@@ -55,30 +50,11 @@ func getStatusValue(err error) string {
 func NewTxDB(nodeTyp int, kvdb kv.Kvdb, txnConf config.TxnConf) (ItxDB, error) {
 	mutex := &sync.Mutex{}
 	txdb := &TxDB{
-		enableSqlite: txnConf.EnableSqliteStorage,
-		nodeType:     nodeTyp,
-		txnKV:        &txnkvdb{txnKV: kvdb.New(Txns), Mutex: mutex},
-		receiptKV:    &receipttxnkvdb{receiptKV: kvdb.New(Results), Mutex: mutex},
-	}
-	if txdb.enableSqlite {
-		txdb.txnSqlite = &txnSqliteStorage{}
-		if err := txdb.txnSqlite.initdb(); err != nil {
-			return nil, err
-		}
-		txdb.receiptSqlite = &receiptSqliteStorage{}
-		if err := txdb.receiptSqlite.initdb(); err != nil {
-			return nil, err
-		}
+		nodeType:  nodeTyp,
+		txnKV:     &txnkvdb{txnKV: kvdb.New(Txns), Mutex: mutex},
+		receiptKV: &receipttxnkvdb{receiptKV: kvdb.New(Results), Mutex: mutex},
 	}
 	return txdb, nil
-}
-
-func (bb *TxDB) getTxn(txnHash Hash) (stxn *SignedTxn, err error) {
-	r, err := bb.txnKV.GetTxn(txnHash)
-	if err != nil {
-		return nil, err
-	}
-	return r, err
 }
 
 func (bb *TxDB) GetTxn(txnHash Hash) (stxn *SignedTxn, err error) {
@@ -89,7 +65,7 @@ func (bb *TxDB) GetTxn(txnHash Hash) (stxn *SignedTxn, err error) {
 	defer func() {
 		metrics.TxnDBDuration.WithLabelValues(txnType, "getTxn").Observe(float64(time.Since(start).Microseconds()))
 	}()
-	txn, err := bb.getTxn(txnHash)
+	txn, err := bb.txnKV.GetTxn(txnHash)
 	if err != nil {
 		metrics.TxnDBCounter.WithLabelValues(txnType, kvSourceType, "getTxn", errStatus).Inc()
 		return nil, err
@@ -99,9 +75,6 @@ func (bb *TxDB) GetTxn(txnHash Hash) (stxn *SignedTxn, err error) {
 }
 
 func (bb *TxDB) GetTxns(txnHashes []Hash) (stxns []*SignedTxn, err error) {
-	if len(txnHashes) > 10 {
-		return nil, fmt.Errorf("GetTxns Size too large")
-	}
 	if bb.nodeType == LightNode {
 		return nil, nil
 	}
@@ -109,20 +82,13 @@ func (bb *TxDB) GetTxns(txnHashes []Hash) (stxns []*SignedTxn, err error) {
 	defer func() {
 		metrics.TxnDBDuration.WithLabelValues(txnType, "getTxns").Observe(float64(time.Since(start).Microseconds()))
 	}()
-	txns := make([]*SignedTxn, 0)
-	for _, txnHash := range txnHashes {
-		result, err := bb.getTxn(txnHash)
-		if err != nil {
-			metrics.TxnDBCounter.WithLabelValues(txnType, kvSourceType, "getTxns", errStatus).Inc()
-			return nil, err
-		}
-		if result == nil {
-			continue
-		}
-		txns = append(txns, result)
+	want, err := bb.txnKV.GetTxns(txnHashes)
+	if err != nil {
+		metrics.TxnDBCounter.WithLabelValues(txnType, kvSourceType, "getTxns", errStatus).Inc()
+		return nil, err
 	}
 	metrics.TxnDBCounter.WithLabelValues(txnType, kvSourceType, "getTxns", successStatus).Inc()
-	return txns, nil
+	return want, nil
 }
 
 func (bb *TxDB) ExistTxn(txnHash Hash) bool {

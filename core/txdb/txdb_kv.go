@@ -33,6 +33,39 @@ func (t *txnkvdb) GetTxn(txnHash Hash) (txn *SignedTxn, err error) {
 	return txn, nil
 }
 
+func (t *txnkvdb) GetTxns(txnHashList []Hash) ([]*SignedTxn, error) {
+	results, err := t.getTxns(txnHashList)
+	if err != nil {
+		return nil, err
+	}
+	want := make([]*SignedTxn, 0, len(results))
+	for _, result := range results {
+		if result == nil {
+			continue
+		}
+		txn, err := DecodeSignedTxn(result)
+		if err != nil {
+			return nil, err
+		}
+		want = append(want, txn)
+	}
+	return want, nil
+}
+
+func (t *txnkvdb) getTxns(txnHashList []Hash) ([][]byte, error) {
+	results := make([][]byte, 0, len(txnHashList))
+	t.Lock()
+	defer t.Unlock()
+	for i := 0; i < len(txnHashList); i++ {
+		byt, err := t.txnKV.Get(txnHashList[i].Bytes())
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, byt)
+	}
+	return results, nil
+}
+
 func (t *txnkvdb) ExistTxn(txnHash Hash) bool {
 	key := txnHash.Bytes()
 	t.Lock()
