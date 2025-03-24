@@ -171,13 +171,6 @@ func (bb *TxDB) GetReceipts(txHashList []Hash) (rec []*Receipt, err error) {
 		return nil, err
 	}
 	metrics.TxnDBCounter.WithLabelValues(receiptType, kvSourceType, "getReceipts", successStatus).Inc()
-	for _, rr := range r {
-		if rr == nil {
-			metrics.TxnDBCounter.WithLabelValues(receiptType, kvSourceType, "getReceipt", notFoundStatus).Inc()
-		} else {
-			metrics.TxnDBCounter.WithLabelValues(receiptType, kvSourceType, "getReceipt", successStatus).Inc()
-		}
-	}
 	return r, nil
 }
 
