@@ -1,6 +1,7 @@
 package txdb
 
 import (
+	"fmt"
 	"time"
 
 	. "github.com/yu-org/yu/common"
@@ -81,6 +82,10 @@ func (t *txnkvdb) ExistTxn(txnHash Hash) bool {
 	key := txnHash.Bytes()
 	//t.Lock()
 	//defer t.Unlock()
+	start := time.Now()
+	defer func() {
+		TxnDBInternalDuration.WithLabelValues(txnLbl, "ExistTxn").Observe(float64(time.Since(start).Microseconds()))
+	}()
 	return t.txnKV.Exist(key)
 }
 
@@ -141,6 +146,9 @@ func (r *receipttxnkvdb) getReceipt(txHash Hash) (*Receipt, error) {
 }
 
 func (r *receipttxnkvdb) GetReceipts(txHashList []Hash) ([]*Receipt, error) {
+	if len(txHashList) > 20 {
+		return nil, fmt.Errorf("exceed GetReceipts limit")
+	}
 	got, err := r.getReceipts(txHashList)
 	if err != nil {
 		return nil, err
