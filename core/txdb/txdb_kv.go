@@ -32,7 +32,7 @@ func (t *txnkvdb) GetTxn(txnHash Hash) (txn *SignedTxn, err error) {
 			return txn, nil
 		}
 		if i < maxRetries-1 {
-			time.Sleep(2 * time.Millisecond)
+			time.Sleep(retryInterval)
 		}
 	}
 	return nil, err
@@ -94,7 +94,7 @@ func (r *receipttxnkvdb) getReceipt(txHash Hash) (*Receipt, error) {
 			return receipt, nil
 		}
 		if i < maxRetries-1 {
-			time.Sleep(2 * time.Millisecond)
+			time.Sleep(retryInterval)
 		}
 	}
 	return nil, err

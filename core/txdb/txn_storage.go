@@ -12,9 +12,10 @@ import (
 )
 
 const (
-	Txns       = "txns"
-	Results    = "results"
-	maxRetries = 20
+	Txns          = "txns"
+	Results       = "results"
+	maxRetries    = 3
+	retryInterval = 50 * time.Millisecond
 )
 
 type TxDB struct {
