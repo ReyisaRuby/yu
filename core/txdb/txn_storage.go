@@ -1,6 +1,7 @@
 package txdb
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -98,6 +99,9 @@ func (bb *TxDB) GetTxn(txnHash Hash) (stxn *SignedTxn, err error) {
 }
 
 func (bb *TxDB) GetTxns(txnHashes []Hash) (stxns []*SignedTxn, err error) {
+	if len(txnHashes) > 10 {
+		return nil, fmt.Errorf("GetTxns Size too large")
+	}
 	if bb.nodeType == LightNode {
 		return nil, nil
 	}

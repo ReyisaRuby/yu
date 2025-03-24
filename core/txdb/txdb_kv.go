@@ -17,23 +17,20 @@ func (p PebbleGetErr) Error() string {
 
 func (t *txnkvdb) GetTxn(txnHash Hash) (txn *SignedTxn, err error) {
 	var byt []byte
-	for i := 0; i < maxRetries; i++ {
-		t.Lock()
-		byt, err = t.txnKV.Get(txnHash.Bytes())
-		t.Unlock()
-		if err != nil {
-			return nil, PebbleGetErr{err: err}
-		}
-		if byt == nil {
-			return nil, nil
-		}
-		txn, err = DecodeSignedTxn(byt)
-		if err != nil {
-			return nil, err
-		}
-		return txn, nil
+	t.Lock()
+	byt, err = t.txnKV.Get(txnHash.Bytes())
+	t.Unlock()
+	if err != nil {
+		return nil, PebbleGetErr{err: err}
 	}
-	return nil, err
+	if byt == nil {
+		return nil, nil
+	}
+	txn, err = DecodeSignedTxn(byt)
+	if err != nil {
+		return nil, err
+	}
+	return txn, nil
 }
 
 func (t *txnkvdb) ExistTxn(txnHash Hash) bool {
