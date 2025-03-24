@@ -22,11 +22,11 @@ const (
 
 func (t *txnkvdb) GetTxn(txnHash Hash) (txn *SignedTxn, err error) {
 	var byt []byte
-	t.Lock()
+	//t.Lock()
 	start := time.Now()
 	byt, err = t.txnKV.Get(txnHash.Bytes())
 	TxnDBInternalDuration.WithLabelValues(txnLbl, "GetTxn").Observe(float64(time.Since(start).Microseconds()))
-	t.Unlock()
+	//t.Unlock()
 	if err != nil {
 		return nil, PebbleGetErr{err: err}
 	}
@@ -61,8 +61,8 @@ func (t *txnkvdb) GetTxns(txnHashList []Hash) ([]*SignedTxn, error) {
 
 func (t *txnkvdb) getTxns(txnHashList []Hash) ([][]byte, error) {
 	results := make([][]byte, 0, len(txnHashList))
-	t.Lock()
-	defer t.Unlock()
+	//t.Lock()
+	//defer t.Unlock()
 	start := time.Now()
 	defer func() {
 		TxnDBInternalDuration.WithLabelValues(txnLbl, "getTxns").Observe(float64(time.Since(start).Microseconds()))
@@ -79,8 +79,8 @@ func (t *txnkvdb) getTxns(txnHashList []Hash) ([][]byte, error) {
 
 func (t *txnkvdb) ExistTxn(txnHash Hash) bool {
 	key := txnHash.Bytes()
-	t.Lock()
-	defer t.Unlock()
+	//t.Lock()
+	//defer t.Unlock()
 	return t.txnKV.Exist(key)
 }
 
@@ -95,8 +95,8 @@ func (t *txnkvdb) SetTxns(txns []*SignedTxn) (err error) {
 		keys = append(keys, txn.TxnHash.Bytes())
 		values = append(values, txbyt)
 	}
-	t.Lock()
-	defer t.Unlock()
+	//t.Lock()
+	//defer t.Unlock()
 	start := time.Now()
 	defer func() {
 		TxnDBInternalDuration.WithLabelValues(txnLbl, "SetTxns").Observe(float64(time.Since(start).Microseconds()))
@@ -121,11 +121,11 @@ func (r *receipttxnkvdb) GetReceipt(txHash Hash) (*Receipt, error) {
 func (r *receipttxnkvdb) getReceipt(txHash Hash) (*Receipt, error) {
 	var byt []byte
 	var err error
-	r.Lock()
+	//r.Lock()
 	byt, err = r.receiptKV.Get(txHash.Bytes())
 	start := time.Now()
 	TxnDBInternalDuration.WithLabelValues(receiptLbl, "getReceipt").Observe(float64(time.Since(start).Microseconds()))
-	r.Unlock()
+	//r.Unlock()
 	if err != nil {
 		return nil, PebbleGetErr{err: err}
 	}
@@ -162,8 +162,8 @@ func (r *receipttxnkvdb) GetReceipts(txHashList []Hash) ([]*Receipt, error) {
 
 func (r *receipttxnkvdb) getReceipts(txHashList []Hash) ([][]byte, error) {
 	results := make([][]byte, 0, len(txHashList))
-	r.Lock()
-	defer r.Unlock()
+	//r.Lock()
+	//defer r.Unlock()
 	start := time.Now()
 	defer func() {
 		TxnDBInternalDuration.WithLabelValues(receiptLbl, "getReceipts").Observe(float64(time.Since(start).Microseconds()))
@@ -184,8 +184,8 @@ func (r *receipttxnkvdb) SetReceipt(txHash Hash, receipt *Receipt) error {
 		return err
 	}
 	key := txHash.Bytes()
-	r.Lock()
-	defer r.Unlock()
+	//r.Lock()
+	//defer r.Unlock()
 	start := time.Now()
 	defer func() {
 		TxnDBInternalDuration.WithLabelValues(receiptLbl, "SetReceipt").Observe(float64(time.Since(start).Microseconds()))
@@ -204,8 +204,8 @@ func (r *receipttxnkvdb) SetReceipts(receipts map[Hash]*Receipt) error {
 		keys = append(keys, txHash.Bytes())
 		values = append(values, byt)
 	}
-	r.Lock()
-	defer r.Unlock()
+	//r.Lock()
+	//defer r.Unlock()
 	start := time.Now()
 	defer func() {
 		TxnDBInternalDuration.WithLabelValues(receiptLbl, "SetReceipts").Observe(float64(time.Since(start).Microseconds()))
