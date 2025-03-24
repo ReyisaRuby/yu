@@ -1,6 +1,8 @@
 package txdb
 
 import (
+	"fmt"
+
 	. "github.com/yu-org/yu/common"
 	. "github.com/yu-org/yu/core/types"
 )
@@ -95,6 +97,9 @@ func (r *receipttxnkvdb) getReceipt(txHash Hash) (*Receipt, error) {
 }
 
 func (r *receipttxnkvdb) GetReceipts(txHashList []Hash) ([]*Receipt, error) {
+	if len(txHashList) > 10 {
+		return nil, fmt.Errorf("getReceipts size too big")
+	}
 	got, err := r.getReceipts(txHashList)
 	if err != nil {
 		return nil, err
