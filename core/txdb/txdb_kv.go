@@ -1,8 +1,6 @@
 package txdb
 
 import (
-	"time"
-
 	. "github.com/yu-org/yu/common"
 	. "github.com/yu-org/yu/core/types"
 )
@@ -28,12 +26,10 @@ func (t *txnkvdb) GetTxn(txnHash Hash) (txn *SignedTxn, err error) {
 			return nil, nil
 		}
 		txn, err = DecodeSignedTxn(byt)
-		if err == nil {
-			return txn, nil
+		if err != nil {
+			return nil, err
 		}
-		if i < maxRetries-1 {
-			time.Sleep(retryInterval)
-		}
+		return txn, nil
 	}
 	return nil, err
 }
@@ -90,12 +86,10 @@ func (r *receipttxnkvdb) getReceipt(txHash Hash) (*Receipt, error) {
 		}
 		receipt := new(Receipt)
 		err = receipt.Decode(byt)
-		if err == nil {
-			return receipt, nil
+		if err != nil {
+			return nil, err
 		}
-		if i < maxRetries-1 {
-			time.Sleep(retryInterval)
-		}
+		return receipt, nil
 	}
 	return nil, err
 }
