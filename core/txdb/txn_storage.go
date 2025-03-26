@@ -50,7 +50,7 @@ func NewTxDB(nodeTyp int, kvdb kv.Kvdb, txnConf config.TxnConf) (ItxDB, error) {
 	txdb := &TxDB{
 		nodeType:  nodeTyp,
 		txnKV:     &txnkvdb{txnKV: kvdb.New(Txns)},
-		receiptKV: &receipttxnkvdb{receiptKV: kvdb.New(Results)},
+		receiptKV: &receipttxnkvdb{receiptKV: kvdb.New(Results), limit: txnConf.ReceiptsLimit},
 	}
 	return txdb, nil
 }
@@ -175,4 +175,5 @@ func (bb *TxDB) GetReceipts(txHashList []Hash) (rec []*Receipt, err error) {
 type receipttxnkvdb struct {
 	//*sync.Mutex
 	receiptKV kv.KV
+	limit     int
 }

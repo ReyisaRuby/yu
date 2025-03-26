@@ -26,4 +26,5 @@ type SqliteDBConf struct {
 type TxnConf struct {
 	UseTxnConf          bool `toml:"use_txn_conf"`
 	EnableSqliteStorage bool `toml:"enable_sqlite_storage"`
+	ReceiptsLimit       int
 }

@@ -146,8 +146,8 @@ func (r *receipttxnkvdb) getReceipt(txHash Hash) (*Receipt, error) {
 }
 
 func (r *receipttxnkvdb) GetReceipts(txHashList []Hash) ([]*Receipt, error) {
-	if len(txHashList) > 20 {
-		return nil, fmt.Errorf("exceed GetReceipts limit")
+	if len(txHashList) > r.limit {
+		return nil, fmt.Errorf("exceed GetReceipts limit %v", r.limit)
 	}
 	got, err := r.getReceipts(txHashList)
 	if err != nil {
