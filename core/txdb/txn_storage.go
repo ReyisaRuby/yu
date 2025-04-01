@@ -50,7 +50,7 @@ func NewTxDB(nodeTyp int, kvdb kv.Kvdb, txnConf config.TxnConf) (ItxDB, error) {
 	txdb := &TxDB{
 		nodeType:  nodeTyp,
 		txnKV:     &txnkvdb{txnKV: kvdb.New(Txns)},
-		receiptKV: &receipttxnkvdb{receiptKV: kvdb.New(Results), limit: txnConf.ReceiptsLimit},
+		receiptKV: NewReceipttxnkvdb(kvdb, txnConf),
 	}
 	return txdb, nil
 }
@@ -174,6 +174,26 @@ func (bb *TxDB) GetReceipts(txHashList []Hash) (rec []*Receipt, err error) {
 
 type receipttxnkvdb struct {
 	//*sync.Mutex
-	receiptKV kv.KV
-	limit     int
+	receiptKV  kv.KV
+	queryLimit int
+
+	enableCache   bool
+	cacheCapacity int
+	cache         *LRUCache
+}
+
+func NewReceipttxnkvdb(kvdb kv.Kvdb, txnConf config.TxnConf) *receipttxnkvdb {
+	r := &receipttxnkvdb{
+		receiptKV:     kvdb.New(Results),
+		queryLimit:    txnConf.ReceiptsLimit,
+		enableCache:   txnConf.EnableReceiptCache,
+		cacheCapacity: txnConf.ReceiptCacheCapacity,
+	}
+	if r.cacheCapacity < 1 {
+		r.cacheCapacity = 1024
+	}
+	if r.enableCache {
+		r.cache = NewLRUCache(r.cacheCapacity)
+	}
+	return r
 }

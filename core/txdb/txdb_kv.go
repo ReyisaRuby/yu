@@ -126,9 +126,15 @@ func (r *receipttxnkvdb) GetReceipt(txHash Hash) (*Receipt, error) {
 func (r *receipttxnkvdb) getReceipt(txHash Hash) (*Receipt, error) {
 	var byt []byte
 	var err error
+	if r.enableCache {
+		g, ok := r.cache.Get(txHash)
+		if ok {
+			return g, nil
+		}
+	}
 	//r.Lock()
-	byt, err = r.receiptKV.Get(txHash.Bytes())
 	start := time.Now()
+	byt, err = r.receiptKV.Get(txHash.Bytes())
 	TxnDBInternalDuration.WithLabelValues(receiptLbl, "getReceipt").Observe(float64(time.Since(start).Microseconds()))
 	//r.Unlock()
 	if err != nil {
@@ -146,8 +152,8 @@ func (r *receipttxnkvdb) getReceipt(txHash Hash) (*Receipt, error) {
 }
 
 func (r *receipttxnkvdb) GetReceipts(txHashList []Hash) ([]*Receipt, error) {
-	if len(txHashList) > r.limit {
-		return nil, fmt.Errorf("exceed GetReceipts limit %v", r.limit)
+	if len(txHashList) > r.queryLimit {
+		return nil, fmt.Errorf("exceed GetReceipts limit %v", r.queryLimit)
 	}
 	got, err := r.getReceipts(txHashList)
 	if err != nil {
@@ -195,10 +201,15 @@ func (r *receipttxnkvdb) SetReceipt(txHash Hash, receipt *Receipt) error {
 	//r.Lock()
 	//defer r.Unlock()
 	start := time.Now()
-	defer func() {
-		TxnDBInternalDuration.WithLabelValues(receiptLbl, "SetReceipt").Observe(float64(time.Since(start).Microseconds()))
-	}()
-	return r.receiptKV.Set(key, byt)
+	err = r.receiptKV.Set(key, byt)
+	if err != nil {
+		return err
+	}
+	if r.enableCache {
+		r.cache.Put(txHash, receipt)
+	}
+	TxnDBInternalDuration.WithLabelValues(receiptLbl, "SetReceipt").Observe(float64(time.Since(start).Microseconds()))
+	return nil
 }
 
 func (r *receipttxnkvdb) SetReceipts(receipts map[Hash]*Receipt) error {
@@ -215,13 +226,16 @@ func (r *receipttxnkvdb) SetReceipts(receipts map[Hash]*Receipt) error {
 	//r.Lock()
 	//defer r.Unlock()
 	start := time.Now()
-	defer func() {
-		TxnDBInternalDuration.WithLabelValues(receiptLbl, "SetReceipts").Observe(float64(time.Since(start).Microseconds()))
-	}()
 	for i := 0; i < len(keys); i++ {
 		err := r.receiptKV.Set(keys[i], values[i])
 		if err != nil {
 			return err
+		}
+	}
+	TxnDBInternalDuration.WithLabelValues(receiptLbl, "SetReceipts").Observe(float64(time.Since(start).Microseconds()))
+	if r.enableCache {
+		for k, v := range receipts {
+			r.cache.Put(k, v)
 		}
 	}
 	return nil
